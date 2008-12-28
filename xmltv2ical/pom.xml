@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>net.bzzt.xmltv2ical</groupId>
 	<artifactId>xmltv2ical</artifactId>
-	<version>SNAPSHOT</version>
+	<version>0.1</version>
 	<inceptionYear>2008</inceptionYear>
 	<properties>
 		<scala.version>2.7.1</scala.version>
@@ -92,6 +92,15 @@
 						</manifest>
 					</archive>
 				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- append to the packaging phase. -->
+						<goals>
+							<goal>attached</goal> <!-- goals == mojos -->
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
