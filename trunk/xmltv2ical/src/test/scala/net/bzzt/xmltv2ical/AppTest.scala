@@ -29,7 +29,7 @@ class AppTest extends TestCase("app") {
     {
       System.out.println("1234");
       
-      val xmltv = scala.xml.XML.loadFile(new File("/home/arnouten/dev/tvgids/tmp/tvgidsdata.xml"));
+      val xmltv = XmlTvToIcal.loadXmlTvFile("/home/arnouten/dev/tvgids/tmp/tvgidsdata.xml");
       for (val programme <- xmltv \ "programme")
       {
         //System.out.println("xx");
