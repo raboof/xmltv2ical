@@ -1,0 +1,6 @@
+#summary Links to other interesting software
+
+= Links =
+
+* http://xmltv.org
+* [http://www.irvinig.org/nxtvepg/ prog2ical.xsl] - xmltv2ical was inspired by this xsl sheet, which does not handle timezones properly.
