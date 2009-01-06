@@ -14,6 +14,7 @@ import net.fortuna.ical4j.model.property.CalScale;
 import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.model.property.Categories;
+import net.fortuna.ical4j.model.property.Location;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.data.CalendarOutputter;
 import net.fortuna.ical4j.util.UidGenerator;
@@ -32,66 +33,107 @@ object XmlTvToIcal {
    */
   def main(args: Array[String])
   {
-    if (args.length != 1)
+    if (args.length < 1)
     {
       printUsage();
     }
     else
     {
       val xmltv = loadXmlTvFile(args.first);
-      writeChannels(xmltv);
+      val fileperchannel = args.length > 1;
+      writeChannels(xmltv, fileperchannel);
     }
   }
   
   /**
    * write each channel into its own .ics file
    */
-  def writeChannels(xmltv : scala.xml.Elem)
+  def writeChannels(xmltv : scala.xml.Elem, fileperchannel : boolean)
   {
-    for (val channel <- xmltv \ "channel")
+	val ug = new UidGenerator("1");
+    
+    if (fileperchannel)
     {
-      val calendarid = channel.attribute("id").get.text;
-      
-      val ical = new Calendar();
-	  ical.getProperties().add(new ProdId("-//bzzt.net//xmltv2ical"));
-	  ical.getProperties().add(Version.VERSION_2_0);
-	  ical.getProperties().add(CalScale.GREGORIAN);
-	  
-	  val ug = new UidGenerator("1");
-      if (! (channel \ "display-name" isEmpty))
-      {
-        ical.getProperties().add(new XProperty("X-WR-CALNAME", channel \ "display-name" text));
-      }
-      val icon = channel \ "icon";
-	  if (! (icon.isEmpty))
-      {
-        ical.getProperties().add(new XProperty("X-ICON-URL", icon.first.attribute("src").get.text));
-      }
-	    
-	    for (val programme <- xmltv \ "programme")
+	    for (val channel <- xmltv \ "channel")
 	    {
-	      if (calendarid.equals(programme.attribute("channel").get.text))
-          {
-		      val title = programme \ "title" text;
-		      val event = new VEvent(convertDate(programme.attribute("start").get.text), 
-		                             convertDate(programme.attribute("stop").get.text), title);
-		      event.getProperties().add(ug.generateUid());
-		      val desc = programme \ "desc";
-		      if (desc.length > 0) {
-		        event.getProperties().add(new Description(desc.text));
-		      }
-              val cat = programme \ "category";
-              if (cat.length > 0)
-              {
-                event.getProperties().add(new Categories(cat.text));  
-              }
-		      ical.getComponents().add(event);
-          }
+	      val calendarid = channel.attribute("id").get.text;
+	
+	      val ical = new Calendar();
+	      
+	      ical.getProperties().add(new ProdId("-//bzzt.net//xmltv2ical"));
+		  ical.getProperties().add(Version.VERSION_2_0);
+		  ical.getProperties().add(CalScale.GREGORIAN);
+		  
+		  if (! (channel \ "display-name" isEmpty))
+	      {
+	        ical.getProperties().add(new XProperty("X-WR-CALNAME", channel \ "display-name" text));
+	      }
+	      val icon = channel \ "icon";
+		  if (! (icon.isEmpty))
+	      {
+	        ical.getProperties().add(new XProperty("X-ICON-URL", icon.first.attribute("src").get.text));
+	      }
+		    
+		    for (val programme <- xmltv \ "programme")
+		    {
+		      if (calendarid.equals(programme.attribute("channel").get.text))
+	          {
+	            addEvent(ical, ug, programme, channel \ "display-name" text);
+	          }
+		    }
+		    
+		    val outputter = new CalendarOutputter();
+		    outputter.output(ical, new FileOutputStream(calendarid + ".ics"));
 	    }
-	    
-	    val outputter = new CalendarOutputter();
-	    outputter.output(ical, new FileOutputStream(calendarid + ".ics"));
-    }
+     }
+    else
+      {
+	      val ical = new Calendar();
+	      
+	      ical.getProperties().add(new ProdId("-//bzzt.net//xmltv2ical"));
+		  ical.getProperties().add(Version.VERSION_2_0);
+		  ical.getProperties().add(CalScale.GREGORIAN);
+  	      
+          for (val programme <- xmltv \ "programme")
+            {
+              val channelName = getChannelName(xmltv, programme.attribute("channel").get.text);
+              addEvent(ical, ug, programme, channelName);
+            }
+    
+          val outputter = new CalendarOutputter();
+	      outputter.output(ical, System.out);
+        
+      }
+  }
+  
+  def getChannelName(xmltv : scala.xml.Elem, id : String) : String = {
+    for (val channel <- xmltv \ "channel")
+      {
+        if (id.equals(channel.attribute("id").get.text))
+          {
+            return channel \ "display-name" text;
+          }
+      }
+    "";
+  }
+  
+  def addEvent(ical : Calendar, ug : UidGenerator , programme : scala.xml.Node, location : String) = {
+      val title = programme \ "title" text;
+      val event = new VEvent(convertDate(programme.attribute("start").get.text), 
+                             convertDate(programme.attribute("stop").get.text), title);
+      event.getProperties().add(ug.generateUid());
+      val desc = programme \ "desc";
+      if (desc.length > 0) {
+        event.getProperties().add(new Description(desc.text));
+      }
+      val cat = programme \ "category";
+      if (cat.length > 0)
+      {
+        event.getProperties().add(new Categories(cat.text));  
+      }
+      event.getProperties().add(new Location(location))
+      ical.getComponents().add(event);
+    
   }
   
   val df = new SimpleDateFormat("yyyyMMddHHmmss Z");
@@ -108,7 +150,7 @@ object XmlTvToIcal {
   
   def printUsage() =
     {
-      System.out.println("Usage: java -jar xmltv2ical.jar infile.xml");
+      System.out.println("Usage: java -jar xmltv2ical.jar infile.xml [-fileperchannel]");
     }
   
   /**
