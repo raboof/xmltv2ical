@@ -1,0 +1,11 @@
+#summary for each release
+#labels Featured
+
+= 0.2 (not yet released) =
+
+ * put channel in 'location'
+ * by default, output one big iCalendar file
+
+= 0.1 =
+
+ * initial release
