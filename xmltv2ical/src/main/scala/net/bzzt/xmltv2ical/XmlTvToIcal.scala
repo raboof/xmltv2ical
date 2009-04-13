@@ -172,40 +172,22 @@ object XmlTvToIcal {
     is.close();
   }
 
-  def loadXmlTvFile(inputFilename : String) : scala.xml.Elem = loadXmlTvFile(inputFilename, false); 
-
   /**
    * parse the file into a scala.xml element.
    * 
-   * this might fail when xmltv.dtd is not present. In that case, it is generated
-   * and the parser is run again.
+   * this would fail when xmltv.dtd is not present. In that case, it is generated
+   * before the parser is ran.
    * 
    * @param inputFilename the file to load
-   * @param retry is this the second try already?
    */
-  def loadXmlTvFile(inputFilename : String, retry : Boolean) : scala.xml.Elem = 
+  def loadXmlTvFile(inputFilename : String) : scala.xml.Elem = 
     {
-      try
+      val dtd = new File("xmltv.dtd");
+      if (!dtd.exists)
         {
-          scala.xml.XML.loadFile(new File(inputFilename));
+          writeDtd(dtd);
         }
-      catch
-        {
-          case e:FileNotFoundException => {
-              // this often means xmltv.dtd is not here yet. Check:
-              val dtd = new File("xmltv.dtd");
-              if (!dtd.exists && !retry)
-                {
-                  writeDtd(dtd);
-                  loadXmlTvFile(inputFilename, true);
-                }
-              else
-                  {
-              throw e;
-              }
-            }
-           
-        }
+      scala.xml.XML.loadFile(new File(inputFilename));
     }
     
 }
