@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 
-import java.text.SimpleDateFormat
+import java.text.SimpleDateFormat;
+
+import scala.collection.mutable.HashMap;
 
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.Calendar;
@@ -51,6 +53,8 @@ object XmlTvToIcal {
   def writeChannels(xmltv : scala.xml.Elem, fileperchannel : boolean)
   {
 	val ug = new UidGenerator("1");
+ 
+    val channelNames = getChannelNames(xmltv);
     
     if (fileperchannel)
     {
@@ -78,7 +82,7 @@ object XmlTvToIcal {
 		    {
 		      if (calendarid.equals(programme.attribute("channel").get.text))
 	          {
-	            addEvent(ical, ug, programme, channel \ "display-name" text);
+	            addEvent(ical, ug, programme, Some (channel \ "display-name" text));
 	          }
 		    }
 		    
@@ -96,7 +100,7 @@ object XmlTvToIcal {
   	      
           for (val programme <- xmltv \ "programme")
             {
-              val channelName = getChannelName(xmltv, programme.attribute("channel").get.text);
+              val channelName = channelNames.get(programme.attribute("channel").get.text);
               addEvent(ical, ug, programme, channelName);
             }
     
@@ -106,18 +110,16 @@ object XmlTvToIcal {
       }
   }
   
-  def getChannelName(xmltv : scala.xml.Elem, id : String) : String = {
+  def getChannelNames(xmltv : scala.xml.Elem) : HashMap[String, String] = {
+    val retval = new HashMap[String, String]
     for (val channel <- xmltv \ "channel")
       {
-        if (id.equals(channel.attribute("id").get.text))
-          {
-            return channel \ "display-name" text;
-          }
+        retval += channel.attribute("id").get.text -> (channel \ "display-name" text) 
       }
-    "";
+    retval;
   }
   
-  def addEvent(ical : Calendar, ug : UidGenerator , programme : scala.xml.Node, location : String) = {
+  def addEvent(ical : Calendar, ug : UidGenerator , programme : scala.xml.Node, location : Option[String]) = {
       val title = programme \ "title" text;
       val event = new VEvent(convertDate(programme.attribute("start").get.text), 
                              convertDate(programme.attribute("stop").get.text), title);
@@ -131,7 +133,10 @@ object XmlTvToIcal {
       {
         event.getProperties().add(new Categories(cat.text));  
       }
-      event.getProperties().add(new Location(location))
+      if (location.isDefined)
+      {
+        event.getProperties().add(new Location(location.get))
+      }
       ical.getComponents().add(event);
     
   }
