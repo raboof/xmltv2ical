@@ -1,0 +1,10 @@
+# 0.2 #
+
+Released 2009/01/11
+
+  * put channel in 'location'
+  * by default, output one big iCalendar file
+
+# 0.1 #
+
+  * initial release
